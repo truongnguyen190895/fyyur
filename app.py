@@ -215,24 +215,75 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
+  try:
+    name = request.form['name']
+    city = request.form['city']
+    state = request.form['state']
+    phone = request.form['phone']
+    address = request.form['address']
+    genres_list = request.form.getlist('genres')
+    facebook_link = request.form['facebook_link']
+    image_link = request.form['image_link']
+    website_link = request.form['website_link']
+    seeking_talent = request.form.get('seeking_talent')
+    seeking_description = request.form.get('seeking_description')
 
-  # on successful db insert, flash success
-  flash('Venue ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+    if seeking_talent == "y":
+      seeking_talent = True
+    else:
+      seeking_talent = False
+
+    if not seeking_description:
+       seeking_description = None
+
+    genres_str = ', '.join(genres_list)
+
+    venue = Venue(
+       name=name, 
+       city=city, 
+       state=state, 
+       address=address, 
+       phone=phone, 
+       image_link=image_link,
+       genres=genres_str,
+       facebook_link=facebook_link,
+       website=website_link,
+       seeking_talent=seeking_talent,
+       seeking_description=seeking_description
+       )
+    
+    db.session.add(venue)
+    db.session.commit()
+
+    flash('Venue ' + name + ' was successfully listed!')
+  except Exception as error:
+    db.session.rollback()
+    flash('An error occurred. Venue ' + name + ' could not be listed.' + str(error))
+
+  finally:
+    db.session.close()
+
   return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-  # TODO: Complete this endpoint for taking a venue_id, and using
-  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
-
   # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
   # clicking that button delete it from the db then redirect the user to the homepage
-  return None
+  try:
+    # Find the venue by its ID and delete it
+    venue = Venue.query.get(venue_id)
+    
+    if venue is None:
+        return jsonify({'message': 'Venue not found'}), 404
+    db.session.delete(venue)
+    db.session.commit()
+    
+    return jsonify({'message': 'Venue deleted successfully'}), 200
+  except Exception as error:
+    db.session.rollback()
+    return jsonify({'message': 'An error occurred while deleting the venue', 'error': str(error)}), 500
+  finally:
+      db.session.close()
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -430,14 +481,23 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-  # called to create new shows in the db, upon submitting new show listing form
-  # TODO: insert form data as a new Show record in the db, instead
+  try:
+    artist_id = request.form.get('artist_id')
+    venue_id = request.form.get('venue_id')
+    start_time = request.form.get('start_time')
 
-  # on successful db insert, flash success
-  flash('Show was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Show could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+    show = Show(artist_id=artist_id, venue_id=venue_id, start_time=start_time)
+
+    db.session.add(show)
+    db.session.commit()
+    flash('Show was successfully listed!')
+        
+  except Exception as error:
+    db.session.rollback()
+    flash('An error occurred. Show could not be listed. Error message: ' + str(error), 'error')
+        
+  finally:
+    db.session.close()
   return render_template('pages/home.html')
 
 @app.errorhandler(404)

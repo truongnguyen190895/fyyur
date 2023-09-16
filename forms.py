@@ -112,7 +112,6 @@ class VenueForm(Form):
             ('Soul', 'Soul'),
             ('Other', 'Other'),
         ],
-        render_kw={"multiple": "multiple"}
     )
     facebook_link = StringField(
         'facebook_link', validators=[URL()]
